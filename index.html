@@ -1620,7 +1620,7 @@
                         });
 
                         // Moagem data
-                        const frentes = ['Frente 4001', 'Frente 4002', 'Frente 4007', 'Frente 40090', 'Frente 40090'];
+                        const frentes = ['Frente A', 'Frente B', 'Frente C', 'Frente D'];
                         if (Math.random() > 0.3) {
                             this.state.moagemData.push({
                                 id: Date.now() + i + 700 + (week * 1000) + Math.random() * 1000,
@@ -3916,7 +3916,7 @@
         }
 
         function openMoagemModal() {
-            const frentes = ['Frente 4001', 'Frente 4002', 'Frente 4007', 'Frente 4009', 'Frente 4010'];
+            const frentes = ['Frente A', 'Frente B', 'Frente C', 'Frente D', 'Frente E'];
             
             showModal('Registro de Moagem', `
                 <form id="moagemForm" class="space-y-6">
@@ -4185,6 +4185,12 @@
                                 <button onclick="createBackup()" class="btn-primary w-full">
                                     <i class="fas fa-download mr-2"></i>Criar Backup Completo
                                 </button>
+                                <div class="relative">
+                                    <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="handleBackupFile(event)">
+                                    <button onclick="document.getElementById('backupFileInput').click()" class="btn-secondary w-full">
+                                        <i class="fas fa-upload mr-2"></i>Importar Backup
+                                    </button>
+                                </div>
                                 <button onclick="clearAllData()" class="btn-danger w-full">
                                     <i class="fas fa-trash mr-2"></i>Limpar Todos os Dados
                                 </button>
@@ -4226,6 +4232,127 @@
             
             URL.revokeObjectURL(url);
             app.showNotification('Backup criado com sucesso! 📄', 'success');
+        }
+
+        function handleBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                app.showNotification('Por favor, selecione um arquivo JSON válido', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    
+                    // Validate backup structure
+                    if (!backupData.equipamentos || !Array.isArray(backupData.equipamentos)) {
+                        throw new Error('Estrutura de backup inválida - equipamentos não encontrados');
+                    }
+
+                    if (!backupData.version) {
+                        throw new Error('Versão do backup não identificada');
+                    }
+
+                    // Show confirmation dialog
+                    const confirmMessage = `🔄 IMPORTAÇÃO DE BACKUP\n\n` +
+                        `Arquivo: ${file.name}\n` +
+                        `Versão: ${backupData.version}\n` +
+                        `Data: ${backupData.timestamp ? new Date(backupData.timestamp).toLocaleString('pt-BR') : 'Não informada'}\n` +
+                        `Equipamentos: ${backupData.equipamentos.length}\n` +
+                        `Registros: ${backupData.totalRecords || 'Não calculado'}\n\n` +
+                        `⚠️ ATENÇÃO: Todos os dados atuais serão SUBSTITUÍDOS!\n\n` +
+                        `Deseja continuar com a importação?`;
+
+                    if (!confirm(confirmMessage)) {
+                        app.showNotification('Importação cancelada pelo usuário', 'info');
+                        event.target.value = ''; // Clear file input
+                        return;
+                    }
+
+                    // Import the data
+                    importBackupData(backupData);
+                    
+                } catch (error) {
+                    console.error('Erro ao processar backup:', error);
+                    app.showNotification(`Erro no arquivo de backup: ${error.message}`, 'error');
+                }
+                
+                // Clear file input
+                event.target.value = '';
+            };
+
+            reader.onerror = function() {
+                app.showNotification('Erro ao ler o arquivo de backup', 'error');
+                event.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        function importBackupData(backupData) {
+            try {
+                // Validate and convert dates
+                if (backupData.equipamentos) {
+                    backupData.equipamentos.forEach(eq => {
+                        if (eq.createdAt) eq.createdAt = new Date(eq.createdAt);
+                    });
+                }
+
+                ['colhedorasData', 'transbordosData', 'caminhoesData', 'moagemData'].forEach(dataType => {
+                    if (backupData[dataType] && Array.isArray(backupData[dataType])) {
+                        backupData[dataType].forEach(item => {
+                            if (item.timestamp) item.timestamp = new Date(item.timestamp);
+                        });
+                    }
+                });
+
+                // Update application state
+                app.state.equipamentos = backupData.equipamentos || [];
+                app.state.colhedorasData = backupData.colhedorasData || [];
+                app.state.transbordosData = backupData.transbordosData || [];
+                app.state.caminhoesData = backupData.caminhoesData || [];
+                app.state.moagemData = backupData.moagemData || [];
+
+                // Save imported data
+                const success = app.saveData();
+                
+                if (success) {
+                    // Update all UI components
+                    app.updateDashboard();
+                    app.updateEquipmentList();
+                    app.updateTabCounts();
+                    app.updateDataStatus();
+                    
+                    const totalRecords = app.state.colhedorasData.length + 
+                                       app.state.transbordosData.length + 
+                                       app.state.caminhoesData.length + 
+                                       app.state.moagemData.length;
+
+                    app.showNotification(
+                        `✅ Backup importado com sucesso!\n\n` +
+                        `• ${app.state.equipamentos.length} equipamentos\n` +
+                        `• ${totalRecords} registros operacionais\n` +
+                        `• Dados atualizados e salvos`, 
+                        'success', 
+                        5000
+                    );
+
+                    // Close modal if open
+                    if (document.getElementById('modalOverlay') && !document.getElementById('modalOverlay').classList.contains('hidden')) {
+                        closeModal();
+                    }
+                } else {
+                    throw new Error('Falha ao salvar dados importados');
+                }
+
+            } catch (error) {
+                console.error('Erro ao importar backup:', error);
+                app.showNotification(`Erro na importação: ${error.message}`, 'error');
+            }
         }
 
         function clearAllData() {
