@@ -541,15 +541,34 @@
                     </div>
 
                     <!-- Análise Detalhada -->
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Análise Detalhada de Consumo e Fluidos</h4>
-                            <button onclick="expandChart('colhedorasConsumoChart')" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                                <i class="fas fa-expand text-sm"></i>
-                            </button>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Distribuição de Consumo de Fluidos</h4>
+                                <button onclick="expandChart('colhedorasConsumoChart')" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                    <i class="fas fa-expand text-sm"></i>
+                                </button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="colhedorasConsumoChart"></canvas>
+                            </div>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="colhedorasConsumoChart"></canvas>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Evolução do Consumo por Equipamento</h4>
+                                <div class="flex space-x-2">
+                                    <select id="colhedorasConsumoEquipamento" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1">
+                                        <option value="">Todos os Equipamentos</option>
+                                    </select>
+                                    <button onclick="expandChart('colhedorasConsumoTemporalChart')" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                        <i class="fas fa-expand text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="colhedorasConsumoTemporalChart"></canvas>
+                            </div>
                         </div>
                     </div>
 
@@ -712,6 +731,38 @@
                             </div>
                             <div class="chart-container">
                                 <canvas id="transbordosEficienciaChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Análise Detalhada -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Distribuição de Consumo de Fluidos</h4>
+                                <button onclick="expandChart('transbordosConsumoChart')" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                    <i class="fas fa-expand text-sm"></i>
+                                </button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="transbordosConsumoChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Evolução do Consumo por Equipamento</h4>
+                                <div class="flex space-x-2">
+                                    <select id="transbordosConsumoEquipamento" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1">
+                                        <option value="">Todos os Equipamentos</option>
+                                    </select>
+                                    <button onclick="expandChart('transbordosConsumoTemporalChart')" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                        <i class="fas fa-expand text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="transbordosConsumoTemporalChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -2066,6 +2117,309 @@
             updateTransbordosCharts(weekData) {
                 this.updateTransbordosOperacoesChart(weekData);
                 this.updateTransbordosEficienciaChart(weekData);
+                this.updateTransbordosConsumoChart(weekData);
+                this.updateTransbordosConsumoTemporalChart(weekData);
+            }
+
+            updateTransbordosConsumoChart(weekData) {
+                const ctx = document.getElementById('transbordosConsumoChart');
+                if (!ctx) return;
+
+                if (this.state.charts.transbordosConsumo) {
+                    this.state.charts.transbordosConsumo.destroy();
+                }
+
+                const consumoData = this.calculateTransbordosConsumo(weekData);
+
+                this.state.charts.transbordosConsumo = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Diesel', 'Óleo Hidráulico'],
+                        datasets: [{
+                            data: consumoData,
+                            backgroundColor: [
+                                '#8B5CF6',
+                                '#F97316'
+                            ],
+                            borderWidth: 3,
+                            borderColor: '#ffffff',
+                            cutout: '50%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    color: '#6B7280',
+                                    font: { weight: '500' }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        return `${label}: ${value.toFixed(1)}L`;
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            }
+
+            updateTransbordosConsumoTemporalChart(weekData) {
+                const ctx = document.getElementById('transbordosConsumoTemporalChart');
+                if (!ctx) return;
+
+                if (this.state.charts.transbordosConsumoTemporal) {
+                    this.state.charts.transbordosConsumoTemporal.destroy();
+                }
+
+                // Filtrar por equipamento selecionado
+                const filtroEquipamento = document.getElementById('transbordosConsumoEquipamento');
+                const equipamentoSelecionado = filtroEquipamento ? filtroEquipamento.value : '';
+                
+                // Atualizar dropdown de equipamentos
+                if (filtroEquipamento) {
+                    const transbordos = this.state.equipamentos.filter(eq => eq.tipo === 'transbordo');
+                    filtroEquipamento.innerHTML = '<option value="">Todos os Equipamentos</option>';
+                    transbordos.forEach(transbordo => {
+                        const option = document.createElement('option');
+                        option.value = transbordo.id;
+                        option.textContent = transbordo.nome;
+                        filtroEquipamento.appendChild(option);
+                    });
+                }
+
+                // Calcular dados temporais de consumo
+                const temporalData = this.calculateTransbordosConsumoTemporal(weekData, equipamentoSelecionado);
+
+                this.state.charts.transbordosConsumoTemporal = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                        datasets: [{
+                            label: 'Diesel (L)',
+                            data: temporalData.diesel,
+                            borderColor: '#8B5CF6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointBackgroundColor: '#8B5CF6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }, {
+                            label: 'Óleo Hidráulico (L)',
+                            data: temporalData.hidraulico,
+                            borderColor: '#F97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointBackgroundColor: '#F97316',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    color: '#6B7280'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#8B5CF6',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    title: function(context) {
+                                        const equipName = equipamentoSelecionado ? 
+                                            (this.state.equipamentos.find(eq => eq.id == equipamentoSelecionado)?.nome || 'Equipamento') :
+                                            'Todos os Equipamentos';
+                                        return `${context[0].label} - ${equipName}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Consumo (litros)',
+                                    color: '#6B7280',
+                                    font: { weight: 'bold' }
+                                },
+                                grid: { color: 'rgba(139, 92, 246, 0.1)' },
+                                ticks: { color: '#6B7280' }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Dias da Semana',
+                                    color: '#6B7280',
+                                    font: { weight: 'bold' }
+                                },
+                                grid: { color: 'rgba(156, 163, 175, 0.3)' },
+                                ticks: { color: '#6B7280' }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            }
+
+            updateColhedorasCharts(weekData) {
+                this.updateColhedorasProducaoChart(weekData);
+                this.updateColhedorasConsumoChart(weekData);
+                this.updateColhedorasEficienciaChart(weekData);
+                this.updateColhedorasConsumoTemporalChart(weekData);
+            }
+
+            updateColhedorasConsumoTemporalChart(weekData) {
+                const ctx = document.getElementById('colhedorasConsumoTemporalChart');
+                if (!ctx) return;
+
+                if (this.state.charts.colhedorasConsumoTemporal) {
+                    this.state.charts.colhedorasConsumoTemporal.destroy();
+                }
+
+                // Filtrar por equipamento selecionado
+                const filtroEquipamento = document.getElementById('colhedorasConsumoEquipamento');
+                const equipamentoSelecionado = filtroEquipamento ? filtroEquipamento.value : '';
+                
+                // Atualizar dropdown de equipamentos
+                if (filtroEquipamento) {
+                    const colhedoras = this.state.equipamentos.filter(eq => eq.tipo === 'colhedora');
+                    filtroEquipamento.innerHTML = '<option value="">Todos os Equipamentos</option>';
+                    colhedoras.forEach(colhedora => {
+                        const option = document.createElement('option');
+                        option.value = colhedora.id;
+                        option.textContent = colhedora.nome;
+                        filtroEquipamento.appendChild(option);
+                    });
+                }
+
+                // Calcular dados temporais de consumo
+                const temporalData = this.calculateColhedorasConsumoTemporal(weekData, equipamentoSelecionado);
+
+                this.state.charts.colhedorasConsumoTemporal = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                        datasets: [{
+                            label: 'Diesel (L)',
+                            data: temporalData.diesel,
+                            borderColor: '#F59E0B',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointBackgroundColor: '#F59E0B',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }, {
+                            label: 'Óleo Hidráulico (L)',
+                            data: temporalData.hidraulico,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointBackgroundColor: '#3B82F6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    color: '#6B7280'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#F59E0B',
+                                borderWidth: 1,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Consumo (litros)',
+                                    color: '#6B7280',
+                                    font: { weight: 'bold' }
+                                },
+                                grid: { color: 'rgba(245, 158, 11, 0.1)' },
+                                ticks: { color: '#6B7280' }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Dias da Semana',
+                                    color: '#6B7280',
+                                    font: { weight: 'bold' }
+                                },
+                                grid: { color: 'rgba(156, 163, 175, 0.3)' },
+                                ticks: { color: '#6B7280' }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
             }
 
             updateTransbordosOperacoesChart(weekData) {
@@ -3219,6 +3573,58 @@
                     case 'caminhao': return 'truck-moving';
                     default: return 'tractor';
                 }
+            }
+
+            calculateColhedorasConsumoTemporal(weekData, equipamentoSelecionado) {
+                const dailyDiesel = [0, 0, 0, 0, 0, 0, 0];
+                const dailyHidraulico = [0, 0, 0, 0, 0, 0, 0];
+                
+                weekData.colhedoras.forEach(data => {
+                    if (data.tipo === 'consumo') {
+                        const equipamentoMatch = !equipamentoSelecionado || data.equipamentoId == equipamentoSelecionado;
+                        if (equipamentoMatch) {
+                            const date = new Date(data.timestamp);
+                            const dayOfWeek = (date.getDay() + 6) % 7;
+                            dailyDiesel[dayOfWeek] += data.consumoCombustivel || 0;
+                            dailyHidraulico[dayOfWeek] += data.consumoHidraulico || 0;
+                        }
+                    }
+                });
+                
+                return { diesel: dailyDiesel, hidraulico: dailyHidraulico };
+            }
+
+            calculateTransbordosConsumo(weekData) {
+                let diesel = 0;
+                let hidraulico = 0;
+                
+                weekData.transbordos.forEach(data => {
+                    if (data.tipo === 'consumo') {
+                        diesel += data.consumoDiesel || 0;
+                        hidraulico += data.consumoHidraulico || 0;
+                    }
+                });
+                
+                return [diesel, hidraulico];
+            }
+
+            calculateTransbordosConsumoTemporal(weekData, equipamentoSelecionado) {
+                const dailyDiesel = [0, 0, 0, 0, 0, 0, 0];
+                const dailyHidraulico = [0, 0, 0, 0, 0, 0, 0];
+                
+                weekData.transbordos.forEach(data => {
+                    if (data.tipo === 'consumo') {
+                        const equipamentoMatch = !equipamentoSelecionado || data.equipamentoId == equipamentoSelecionado;
+                        if (equipamentoMatch) {
+                            const date = new Date(data.timestamp);
+                            const dayOfWeek = (date.getDay() + 6) % 7;
+                            dailyDiesel[dayOfWeek] += data.consumoDiesel || 0;
+                            dailyHidraulico[dayOfWeek] += data.consumoHidraulico || 0;
+                        }
+                    }
+                });
+                
+                return { diesel: dailyDiesel, hidraulico: dailyHidraulico };
             }
 
             updateElement(id, value) {
